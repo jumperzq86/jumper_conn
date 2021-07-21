@@ -103,14 +103,6 @@ func (this *tcpConn) AsyncWrite(data []byte) (err error) {
 		return def.ErrConnClosed
 	}
 
-	//defer func() {
-	//	if panicErr := recover(); panicErr != nil {
-	//		//note: 接收并且处理下面writeBuffer 写入之前已经关闭导致的panic
-	//		err = def.ErrConnClosed
-	//		return
-	//	}
-	//}()
-
 	this.writeBuffer <- data
 	return nil
 }
@@ -151,7 +143,6 @@ func (this *tcpConn) close(err error) {
 	}
 
 	close(this.closeChan)
-	//close(this.writeBuffer)
 
 	this.conn.Close()
 

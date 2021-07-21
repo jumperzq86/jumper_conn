@@ -87,12 +87,6 @@ func (this *wsConn) AsyncWrite(data []byte) (err error) {
 		return def.ErrConnClosed
 	}
 
-	defer func() {
-		if panicErr := recover(); panicErr != nil {
-			err = def.ErrConnClosed
-		}
-	}()
-
 	this.writeBuffer <- data
 	return nil
 }
@@ -165,7 +159,6 @@ func (this *wsConn) close(err error) {
 	}
 
 	close(this.closeChan)
-	close(this.writeBuffer)
 
 	if err == nil || err == def.ErrConnClosed {
 		content := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "byebye.")
