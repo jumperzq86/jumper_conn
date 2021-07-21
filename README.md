@@ -1,2 +1,2 @@
 # jumper_conn
-基本的tcp/websocket封装
+about connection.

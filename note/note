@@ -1,0 +1,22 @@
+------------------------
+websocket 常识：
+
+通常是 server 端发送ping, 接收pong
+客户端接收到ping, 发送 pong
+服务端可以借是否接收到pong 来判断客户端是否还在线
+
+client.  pong ->.     <- ping server
+
+server 端接收 pong, 可以 set read deadline 确保 pong wait 内能够接收到下一个 pong , 若是不能接收到下一个 pong 就表示连接存在问题了。
+超时导致 read write 返回
+
+
+
+------------------------
+gorilla/websocket 常识：
+
+在创建 conn 的时候，就会默认设置（newConn 函数中会调用 SetCloseHandler / SetPingHandler / SetPongHandler ）
+handlePong    func(string) error
+handlePing    func(string) error
+handleClose   func(int, string) error
+
