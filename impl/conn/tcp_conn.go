@@ -23,6 +23,8 @@ type tcpConn struct {
 	conn    net.Conn
 	handler interf.Handler
 	co      *def.ConnOptions
+
+	dataGuard  sync.Mutex // 保证在并发情况下，一个命令接一个命令完整地发送出去，而不是多个命令的数据混淆发送
 }
 
 func CreatetcpConn(conn net.Conn, co *def.ConnOptions, handler interf.Handler) (interf.Conn, error) {
@@ -74,13 +76,22 @@ func (this *tcpConn) Write(data []byte) error {
 		return def.ErrConnClosed
 	}
 
-	this.setWriteDeadline(this.co.WriteTimeout)
-	defer this.setWriteDeadline(0)
+	return this.writeData(data)
+}
 
+
+func (this *tcpConn) writeData(data []byte) error{
 	length := len(data)
 	written := 0
 	var err error
 	var l int
+
+	this.dataGuard.Lock()
+	defer this.dataGuard.Unlock()
+
+
+	this.setWriteDeadline(this.co.WriteTimeout)
+	defer this.setWriteDeadline(0)
 
 	for {
 		l, err = this.conn.Write(data[written:])
@@ -95,6 +106,8 @@ func (this *tcpConn) Write(data []byte) error {
 
 	return err
 }
+
+
 
 func (this *tcpConn) AsyncWrite(data []byte) (err error) {
 
@@ -155,8 +168,6 @@ func (this *tcpConn) close(err error) {
 func (this *tcpConn) asyncWrite(wg *sync.WaitGroup) error {
 
 	wg.Done()
-
-	var l int
 	var err error
 
 writeLoop:
@@ -171,23 +182,9 @@ writeLoop:
 				break writeLoop
 			}
 
-			length := len(data)
-			written := 0
-
-			for {
-
-				this.setWriteDeadline(this.co.WriteTimeout)
-				l, err = this.conn.Write(data[written:])
-				this.setWriteDeadline(0)
-
-				if err != nil {
-					break writeLoop
-				}
-				written += l
-
-				if length == written {
-					break
-				}
+			err = this.writeData(data)
+			if err != nil {
+				break writeLoop
 			}
 		}
 	}
